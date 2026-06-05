@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Tarifa TBF</title>
+
+<!-- PWA iOS -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tarifa TBF">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0e0e0d">
+
+<!-- iOS Icon -->
+<link id="apple-touch-icon" rel="apple-touch-icon" sizes="180x180">
+<link id="favicon" rel="icon" type="image/png">
+
+<script>
+(function(){
+  function makeIcon(size){
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const ctx = c.getContext('2d');
+    // BG negro marca
+    ctx.fillStyle = '#0e0e0d';
+    ctx.fillRect(0,0,size,size);
+    // Amber accent circle
+    ctx.beginPath();
+    ctx.arc(size*0.75, size*0.25, size*0.22, 0, Math.PI*2);
+    ctx.fillStyle = '#f5a800';
+    ctx.globalAlpha = 0.15;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    // "J" Jamboree style
+    ctx.fillStyle = '#f5a800';
+    ctx.font = `900 ${size*0.52}px 'Nunito', serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('J', size*0.5, size*0.44);
+    // Subtítulo
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.font = `700 ${size*0.095}px 'Arial Narrow', sans-serif`;
+    ctx.letterSpacing = '2px';
+    ctx.fillText('THE BOWL FACTORY', size*0.5, size*0.78);
+    return c.toDataURL('image/png');
+  }
+  const icon180 = makeIcon(180);
+  const icon32  = makeIcon(32);
+  document.getElementById('apple-touch-icon').href = icon180;
+  document.getElementById('favicon').href = icon32;
+  const manifest = {
+    name: 'Jamboree · Tarifa',
+    short_name: 'Tarifa TBF',
+    description: 'Generador de tarifas The Bowl Factory',
+    start_url: './',
+    display: 'standalone',
+    background_color: '#0e0e0d',
+    theme_color: '#0e0e0d',
+    orientation: 'portrait',
+    icons: [{ src: icon180, sizes: '180x180', type: 'image/png', purpose: 'any maskable' }]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+  const link = document.createElement('link');
+  link.rel = 'manifest'; link.href = URL.createObjectURL(blob);
+  document.head.appendChild(link);
+})();
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@900&family=Barlow+Condensed:wght@400;600;700;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+:root {
+  --black:   #0e0e0d;
+  --black2:  #181816;
+  --white:   #fafaf8;
+  --amber:   #f5a800;
+  --amber-d: #e09500;
+  --amber-l: #fff3d6;
+  --gray:    #6b6b63;
+  --gray-l:  #f0efea;
+  --border:  rgba(14,14,13,.1);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #e8e6df;
+  color: var(--black);
+}
+
+/* ── LOGO COMPONENT ── */
+.logo-mark {
+  display: flex;
+  flex-direction: column;
+  line-height: 1;
+  gap: 3px;
+}
+.logo-main {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 900;
+  letter-spacing: -.01em;
+}
+.logo-sub {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .2em;
+}
+/* on dark bg */
+.on-dark .logo-main { color: var(--amber); }
+.on-dark .logo-sub  { color: rgba(255,255,255,.45); }
+/* on white bg */
+.on-light .logo-main { color: var(--amber-d); }
+.on-light .logo-sub  { color: rgba(14,14,13,.4); }
+
+/* ══════════════════════════════
+   SCREEN LAYOUT
+══════════════════════════════ */
+.screen-wrap { display: flex; min-height: 100vh; }
+
+/* SIDEBAR */
+.sidebar {
+  width: 320px;
+  min-width: 320px;
+  background: var(--black);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar-brand {
+  padding: 28px 24px 22px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.sidebar-brand .logo-main { font-size: 1.6rem; }
+.sidebar-brand .logo-sub  { font-size: .55rem; margin-top: 2px; }
+.brand-tagline {
+  font-size: 11px;
+  color: rgba(255,255,255,.28);
+  margin-top: 8px;
+  font-weight: 300;
+}
+
+.sidebar-section {
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+
+.sidebar-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.28);
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.field { margin-bottom: 12px; }
+.field:last-child { margin-bottom: 0; }
+.field label {
+  display: block;
+  font-size: 10px;
+  color: rgba(255,255,255,.38);
+  margin-bottom: 4px;
+}
+.field input, .field select {
+  width: 100%;
+  padding: 8px 11px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 5px;
+  color: var(--white);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  transition: border-color .15s;
+}
+.field input:focus, .field select:focus {
+  outline: none;
+  border-color: var(--amber);
+}
+.field input::placeholder { color: rgba(255,255,255,.18); }
+.field select option { background: var(--black); }
+
+/* SKU CHECKS */
+.sku-group-title {
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.22);
+  margin: 14px 0 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,.05);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+}
+.sku-group-title:first-child { margin-top:0; border-top:none; padding-top:0; }
+
+.sku-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background .1s;
+  margin-bottom: 2px;
+}
+.sku-check:hover { background: rgba(255,255,255,.04); }
+.sku-check input[type=checkbox] { display:none; }
+.check-box {
+  width: 15px; height: 15px;
+  border: 1.5px solid rgba(255,255,255,.2);
+  border-radius: 3px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .12s;
+}
+.sku-check input:checked ~ .check-box {
+  background: var(--amber);
+  border-color: var(--amber);
+}
+.sku-check input:checked ~ .check-box::after {
+  content: '✓';
+  font-size: 9px;
+  color: var(--black);
+  font-weight: 900;
+}
+.check-name { font-size: 12px; color: var(--white); font-weight: 500; }
+.check-spec { font-size: 10px; color: rgba(255,255,255,.32); margin-top: 1px; }
+
+/* PRICE ROWS */
+.price-sku-group { margin-bottom: 16px; }
+.price-sku-label {
+  font-size: 10px;
+  color: rgba(255,255,255,.45);
+  margin-bottom: 7px;
+  font-weight: 500;
+}
+.price-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 7px;
+}
+.price-row-label {
+  font-size: 11px;
+  color: rgba(255,255,255,.42);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.price-row input {
+  width: 72px;
+  padding: 5px 7px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 4px;
+  color: var(--white);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.price-row input:focus { outline:none; border-color: var(--amber); }
+.price-suffix { font-size: 9px; color: rgba(255,255,255,.25); font-family:'DM Mono',monospace; }
+
+/* VOL BREAKS */
+.vol-mini-grid { display: grid; grid-template-columns:1fr 1fr 1fr; gap: 7px; }
+.vol-mini { display: flex; flex-direction: column; gap: 3px; }
+.vol-mini label { font-size: 9px; color: rgba(255,255,255,.28); }
+.vol-mini input {
+  padding: 5px 7px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 4px;
+  color: var(--white);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  text-align: center;
+  width: 100%;
+}
+.vol-mini input:focus { outline:none; border-color: var(--amber); }
+
+/* FOOTER SIDEBAR */
+.sidebar-footer { padding: 16px 24px 28px; margin-top: auto; }
+
+.btn-generate {
+  width: 100%;
+  padding: 13px;
+  background: var(--amber);
+  color: var(--black);
+  border: none;
+  border-radius: 5px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background .15s, transform .1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-generate:hover { background: var(--amber-d); }
+.btn-generate:active { transform: scale(.98); }
+
+.btn-reset {
+  width: 100%;
+  margin-top: 7px;
+  padding: 8px;
+  background: transparent;
+  color: rgba(255,255,255,.3);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 4px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn-reset:hover { background: rgba(255,255,255,.04); color: var(--white); }
+
+/* ══════════════════════════════
+   PREVIEW PANEL
+══════════════════════════════ */
+.preview-panel { flex:1; padding: 36px 44px; overflow-y: auto; }
+
+.preview-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(14,14,13,.38);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.preview-label::after { content:''; flex:1; height:1px; background: var(--border); }
+
+/* ══════════════════════════════
+   PDF DOCUMENT
+══════════════════════════════ */
+.doc {
+  background: white;
+  width: 100%;
+  max-width: 820px;
+  margin: 0 auto;
+  box-shadow: 0 8px 40px rgba(14,14,13,.14);
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* DOC HEADER */
+.doc-header {
+  background: var(--black);
+  padding: 40px 48px 34px;
+  position: relative;
+  overflow: hidden;
+}
+.doc-header::before {
+  content:'';
+  position: absolute;
+  top: -40px; right: -40px;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: var(--amber);
+  opacity: .07;
+}
+.doc-header-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+.doc-header .logo-main { font-size: 2.4rem; }
+.doc-header .logo-sub  { font-size: .72rem; margin-top: 3px; }
+.doc-header-tagline {
+  font-size: 11.5px;
+  color: rgba(255,255,255,.35);
+  margin-top: 8px;
+  font-weight: 300;
+  font-style: italic;
+}
+
+.doc-meta {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: flex-end;
+}
+.doc-meta-chip {
+  background: var(--amber);
+  color: var(--black);
+  padding: 3px 10px;
+  border-radius: 3px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.doc-meta-line {
+  font-size: 10.5px;
+  color: rgba(255,255,255,.32);
+  font-family: 'DM Mono', monospace;
+  font-weight: 300;
+}
+.doc-meta-line strong { color: rgba(255,255,255,.65); font-weight: 500; }
+
+/* CLIENT BAR */
+.doc-client-bar {
+  background: var(--amber-l);
+  border-bottom: 2px solid rgba(245,168,0,.3);
+  padding: 16px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.client-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: rgba(14,14,13,.45);
+  margin-bottom: 3px;
+  font-weight: 700;
+}
+.client-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 22px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: var(--black);
+  letter-spacing: .02em;
+}
+.validity-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: rgba(14,14,13,.45);
+  font-weight: 700;
+  margin-bottom: 3px;
+  text-align: right;
+}
+.validity-date {
+  font-family: 'DM Mono', monospace;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--amber-d);
+  text-align: right;
+}
+
+/* DOC BODY */
+.doc-body { padding: 32px 48px 44px; }
+
+.doc-intro {
+  font-size: 12.5px;
+  color: var(--gray);
+  font-weight: 300;
+  font-style: italic;
+  margin-bottom: 28px;
+  line-height: 1.65;
+  border-left: 2px solid var(--amber);
+  padding-left: 14px;
+}
+
+/* PRODUCT SECTION */
+.prod-section { margin-bottom: 32px; }
+
+.prod-section-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 9px;
+  border-bottom: 1.5px solid var(--border);
+}
+.prod-section-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--black);
+}
+.prod-section-sub {
+  font-size: 11px;
+  color: var(--gray);
+  margin-top: 1px;
+}
+
+/* PRICE TABLE */
+.price-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.price-table thead th {
+  background: var(--black);
+  color: var(--white);
+  padding: 9px 13px;
+  text-align: right;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  border-right: 1px solid rgba(255,255,255,.06);
+  white-space: nowrap;
+}
+.price-table thead th:first-child {
+  text-align: left;
+  padding-left: 14px;
+}
+.price-table thead th:last-child { border-right: none; }
+
+.th-vol { text-align: center !important; }
+.th-vol-range {
+  display: block;
+  font-size: 7.5px;
+  color: rgba(255,255,255,.3);
+  margin-top: 1px;
+}
+
+.price-table tbody tr { border-bottom: 1px solid rgba(14,14,13,.06); }
+.price-table tbody tr:last-child { border-bottom: none; }
+.price-table tbody tr:nth-child(even) { background: #fafaf6; }
+
+.price-table td {
+  padding: 10px 13px;
+  text-align: right;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--black);
+}
+.td-product { text-align: left !important; padding-left: 14px !important; }
+
+.prod-code {
+  font-size: 8.5px;
+  font-family: 'DM Mono', monospace;
+  color: rgba(14,14,13,.3);
+  letter-spacing: .4px;
+  margin-bottom: 2px;
+}
+.prod-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--black);
+}
+.prod-spec {
+  font-size: 10px;
+  color: var(--gray);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+}
+
+.td-best {
+  color: var(--amber-d) !important;
+  font-weight: 700 !important;
+  background: rgba(245,168,0,.09);
+}
+
+/* CUSTOM TABLE */
+.custom-table { width:100%; border-collapse:collapse; }
+.custom-table thead th {
+  background: var(--black);
+  color: var(--white);
+  padding: 9px 14px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  text-align: left;
+  border-right: 1px solid rgba(255,255,255,.06);
+}
+.custom-table thead th:last-child { border-right:none; text-align:right; }
+.custom-table tbody td {
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(14,14,13,.06);
+  font-size: 13px;
+}
+.custom-table tbody tr:last-child td { border-bottom:none; }
+.custom-price-val {
+  text-align: right;
+  font-family: 'DM Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--amber-d);
+}
+.custom-badge {
+  display: inline-block;
+  background: var(--amber);
+  color: var(--black);
+  font-size: 7.5px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-left: 6px;
+  font-weight: 700;
+  font-family: 'Barlow Condensed', sans-serif;
+  vertical-align: middle;
+}
+
+/* NOTES */
+.doc-notes {
+  background: var(--gray-l);
+  border-radius: 6px;
+  padding: 18px 22px;
+  margin-top: 4px;
+}
+.notes-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gray);
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+.notes-list { list-style:none; display:flex; flex-direction:column; gap:5px; }
+.notes-list li {
+  font-size: 11.5px;
+  color: rgba(14,14,13,.6);
+  padding-left: 12px;
+  position: relative;
+  line-height: 1.5;
+}
+.notes-list li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--amber-d);
+  font-weight: 700;
+}
+
+/* DOC FOOTER */
+.doc-footer {
+  background: var(--black2);
+  padding: 16px 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+.doc-footer-l, .doc-footer-r {
+  font-size: 10px;
+  color: rgba(255,255,255,.28);
+  font-family: 'DM Mono', monospace;
+  line-height: 1.6;
+}
+.doc-footer-r { text-align: right; }
+
+/* EMPTY STATE */
+.empty-state {
+  text-align: center;
+  padding: 60px 40px;
+  background: white;
+}
+.empty-state p { font-size: 14px; color: var(--gray); }
+
+/* ══════════════════════════════
+   MOBILE
+══════════════════════════════ */
+.mobile-tabs { display: none; }
+
+@media (max-width: 700px) {
+  .screen-wrap { flex-direction: column; }
+  .sidebar { width:100%; min-width:0; height:auto; position:static; }
+  .preview-panel { padding: 16px 14px 40px; }
+
+  .mobile-tabs {
+    display: flex;
+    background: #111110;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    position: sticky;
+    top: 0;
+    z-index: 200;
+  }
+  .mobile-tab {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.35);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all .15s;
+  }
+  .mobile-tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+
+  .doc-header { padding: 24px 20px 20px; }
+  .doc-header-inner { flex-direction: column; gap: 14px; }
+  .doc-meta { text-align: left; align-items: flex-start; }
+  .doc-header .logo-main { font-size: 1.9rem; }
+  .doc-client-bar { padding: 12px 20px; flex-direction: column; gap: 6px; }
+  .validity-label, .validity-date { text-align: left; }
+  .doc-body { padding: 20px 16px 30px; }
+  .doc-footer { padding: 14px 20px; flex-direction: column; gap: 4px; }
+  .doc-footer-r { text-align: left; }
+  .prod-section { overflow-x: auto; }
+  .price-table, .custom-table { min-width: 480px; }
+}
+
+@media (min-width: 701px) {
+  .sidebar { display: flex !important; }
+  .preview-panel { display: block !important; }
+}
+
+/* PRINT */
+@media print {
+  @page { size: A4; margin: 0; }
+  body { background: white !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+  .screen-wrap { display: block; }
+  .sidebar, .preview-label, #installBanner, .mobile-tabs { display: none !important; }
+  .preview-panel { padding: 0; }
+  .doc { box-shadow: none !important; max-width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- iOS INSTALL BANNER -->
+<div id="installBanner" style="display:none;background:var(--amber,#f5a800);color:#0e0e0d;padding:11px 20px;font-family:'DM Sans',sans-serif;font-size:13px;text-align:center;position:sticky;top:0;z-index:999;line-height:1.5">
+  <strong>Instalar como app:</strong> pulsa <strong>↑ Compartir</strong> → "Añadir a pantalla de inicio"
+  <span onclick="document.getElementById('installBanner').style.display='none'" style="margin-left:14px;cursor:pointer;opacity:0.6;font-size:16px">✕</span>
+</div>
+<script>
+if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.navigator.standalone) {
+  document.getElementById('installBanner').style.display = 'block';
+}
+</script>
+
+<div class="screen-wrap">
+
+  <!-- MOBILE TABS -->
+  <div class="mobile-tabs">
+    <div class="mobile-tab active" id="tab-config" onclick="switchTab('config')">⚙ Configurar</div>
+    <div class="mobile-tab" id="tab-preview" onclick="switchTab('preview')">👁 Vista previa</div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <div class="sidebar-brand on-dark">
+      <div class="logo-mark">
+        <span class="logo-main">Jamboree</span>
+        <span class="logo-sub">The Bowl Factory</span>
+      </div>
+      <div class="brand-tagline">Generador de tarifas · v1.0</div>
+    </div>
+
+    <!-- CLIENTE -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Datos del cliente</div>
+      <div class="field">
+        <label>Nombre / Restaurante</label>
+        <input type="text" id="clientName" placeholder="Ej: La Pepita Burger" oninput="render()">
+      </div>
+      <div class="field">
+        <label>Fecha de validez</label>
+        <input type="date" id="validUntil" oninput="render()">
+      </div>
+      <div class="field">
+        <label>Nota personalizada (opcional)</label>
+        <input type="text" id="clientNotes" placeholder="Ej: Precio acordado" oninput="render()">
+      </div>
+    </div>
+
+    <!-- MODO -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Modo de tarifa</div>
+      <div class="field">
+        <label>Presentación de precios</label>
+        <select id="priceMode" onchange="togglePriceMode()">
+          <option value="scale">Escala de volumen</option>
+          <option value="custom">Precio único negociado</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- TRAMOS -->
+    <div class="sidebar-section" id="volSection">
+      <div class="sidebar-label">Tramos de volumen (uds.)</div>
+      <div class="vol-mini-grid">
+        <div class="vol-mini"><label>T1</label><input type="number" id="v0" value="1500" step="500" oninput="render()"></div>
+        <div class="vol-mini"><label>T2</label><input type="number" id="v1" value="3000" step="500" oninput="render()"></div>
+        <div class="vol-mini"><label>T3</label><input type="number" id="v2" value="5000" step="500" oninput="render()"></div>
+        <div class="vol-mini"><label>T4</label><input type="number" id="v3" value="10000" step="1000" oninput="render()"></div>
+        <div class="vol-mini"><label>T5</label><input type="number" id="v4" value="20000" step="1000" oninput="render()"></div>
+        <div class="vol-mini"><label>T6</label><input type="number" id="v5" value="30000" step="1000" oninput="render()"></div>
+      </div>
+    </div>
+
+    <!-- SKUs -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">Productos a incluir</div>
+      <div id="skuChecks"></div>
+    </div>
+
+    <!-- PRECIOS ESCALA -->
+    <div class="sidebar-section" id="scaleSection">
+      <div class="sidebar-label">Precios por tramo (€/1.000 uds.)</div>
+      <div id="scalePriceEditor"></div>
+    </div>
+
+    <!-- PRECIOS CUSTOM -->
+    <div class="sidebar-section" id="customSection" style="display:none">
+      <div class="sidebar-label">Precio único negociado (€/1.000 uds.)</div>
+      <div id="customPriceEditor"></div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="btn-generate" id="btnGenerate" onclick="generatePDF()">
+        <span id="btnIcon">↓</span> <span id="btnText">Generar PDF</span>
+      </button>
+      <button class="btn-reset" onclick="resetAll()">Restablecer valores por defecto</button>
+    </div>
+
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="preview-panel">
+    <div class="preview-label">Vista previa del documento</div>
+    <div id="docPreview"></div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════
+// DATA
+// ═══════════════════════
+const defaultSkus = [
+  { id:'ENS-500-KR',  nombre:'Bowl 500cc',  spec:'Kraft · Ø130mm',   tipo:'bowl', precios:[22.50,20.80,19.20,17.40,15.80,14.50], checked:true  },
+  { id:'ENS-750-KR',  nombre:'Bowl 750cc',  spec:'Kraft · Ø145mm',   tipo:'bowl', precios:[25.00,23.10,21.30,19.20,17.40,15.90], checked:true  },
+  { id:'ENS-1100-KR', nombre:'Bowl 1100cc', spec:'Kraft · Ø165mm',   tipo:'bowl', precios:[28.50,26.30,24.20,21.80,19.70,18.00], checked:true  },
+  { id:'ENS-500-BL',  nombre:'Bowl 500cc',  spec:'Blanco · Ø130mm',  tipo:'bowl', precios:[24.00,22.20,20.40,18.50,16.80,15.30], checked:false },
+  { id:'ENS-750-BL',  nombre:'Bowl 750cc',  spec:'Blanco · Ø145mm',  tipo:'bowl', precios:[26.80,24.70,22.80,20.60,18.70,17.10], checked:false },
+  { id:'ENS-1100-BL', nombre:'Bowl 1100cc', spec:'Blanco · Ø165mm',  tipo:'bowl', precios:[30.50,28.10,25.90,23.40,21.20,19.40], checked:false },
+  { id:'TAP-130-PLA', nombre:'Tapa Ø130',   spec:'PLA transparente', tipo:'tapa', precios:[14.50,13.40,12.30,11.10, 9.80, 8.90], checked:false },
+  { id:'TAP-165-PLA', nombre:'Tapa Ø165',   spec:'PLA transparente', tipo:'tapa', precios:[16.80,15.50,14.20,12.80,11.30,10.20], checked:false },
+];
+
+let skus = JSON.parse(JSON.stringify(defaultSkus));
+let customPrices = {};
+skus.forEach(s => customPrices[s.id] = s.precios[0]);
+
+// ═══════════════════════
+// INIT
+// ═══════════════════════
+function init() {
+  const d = new Date(); d.setDate(d.getDate() + 30);
+  document.getElementById('validUntil').value = d.toISOString().split('T')[0];
+  buildSkuChecks();
+  buildScalePriceEditor();
+  buildCustomPriceEditor();
+  render();
+}
+
+// ═══════════════════════
+// BUILD SIDEBAR
+// ═══════════════════════
+function buildSkuChecks() {
+  const bowls = skus.filter(s => s.tipo === 'bowl');
+  const tapas = skus.filter(s => s.tipo === 'tapa');
+  let html = '<div class="sku-group-title">Ensaladeras</div>';
+  bowls.forEach(s => html += skuCheckHtml(s));
+  html += '<div class="sku-group-title">Tapas</div>';
+  tapas.forEach(s => html += skuCheckHtml(s));
+  document.getElementById('skuChecks').innerHTML = html;
+}
+
+function skuCheckHtml(s) {
+  return `<label class="sku-check">
+    <input type="checkbox" id="chk_${s.id}" ${s.checked?'checked':''}
+      onchange="toggleSku('${s.id}',this.checked)">
+    <div class="check-box"></div>
+    <div class="check-info">
+      <div class="check-name">${s.nombre}</div>
+      <div class="check-spec">${s.spec}</div>
+    </div>
+  </label>`;
+}
+
+function buildScalePriceEditor() {
+  const vols = getVols();
+  const active = skus.filter(s => s.checked);
+  let html = '';
+  active.forEach(s => {
+    html += `<div class="price-sku-group">
+      <div class="price-sku-label">${s.nombre} <span style="opacity:.5">${s.spec}</span></div>`;
+    s.precios.forEach((p, i) => {
+      html += `<div class="price-row">
+        <span class="price-row-label">T${i+1} · ${fmtK(vols[i])}</span>
+        <input type="number" id="sp_${s.id}_${i}" value="${p}" step="0.10"
+          oninput="updateScalePrice('${s.id}',${i},this.value)">
+        <span class="price-suffix">€/k</span>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  if (!html) html = '<p style="font-size:11px;color:rgba(255,255,255,.25)">Selecciona productos arriba</p>';
+  document.getElementById('scalePriceEditor').innerHTML = html;
+}
+
+function buildCustomPriceEditor() {
+  const active = skus.filter(s => s.checked);
+  let html = '';
+  active.forEach(s => {
+    html += `<div class="price-row">
+      <span class="price-row-label">${s.nombre} · ${s.spec}</span>
+      <input type="number" id="cp_${s.id}" value="${customPrices[s.id]}" step="0.10"
+        oninput="updateCustomPrice('${s.id}',this.value)">
+      <span class="price-suffix">€/k</span>
+    </div>`;
+  });
+  if (!html) html = '<p style="font-size:11px;color:rgba(255,255,255,.25)">Selecciona productos arriba</p>';
+  document.getElementById('customPriceEditor').innerHTML = html;
+}
+
+// ═══════════════════════
+// EVENTS
+// ═══════════════════════
+function toggleSku(id, checked) {
+  skus.find(s => s.id === id).checked = checked;
+  buildScalePriceEditor(); buildCustomPriceEditor(); render();
+}
+function updateScalePrice(id, idx, val) {
+  const s = skus.find(s => s.id === id);
+  if (s) s.precios[idx] = parseFloat(val) || s.precios[idx];
+  render();
+}
+function updateCustomPrice(id, val) {
+  customPrices[id] = parseFloat(val) || customPrices[id];
+  render();
+}
+function togglePriceMode() {
+  const mode = document.getElementById('priceMode').value;
+  document.getElementById('volSection').style.display    = mode==='scale' ? '' : 'none';
+  document.getElementById('scaleSection').style.display  = mode==='scale' ? '' : 'none';
+  document.getElementById('customSection').style.display = mode==='custom' ? '' : 'none';
+  render();
+}
+function resetAll() {
+  skus = JSON.parse(JSON.stringify(defaultSkus));
+  customPrices = {}; skus.forEach(s => customPrices[s.id] = s.precios[0]);
+  document.getElementById('clientName').value = '';
+  document.getElementById('clientNotes').value = '';
+  document.getElementById('priceMode').value = 'scale';
+  const d = new Date(); d.setDate(d.getDate()+30);
+  document.getElementById('validUntil').value = d.toISOString().split('T')[0];
+  togglePriceMode();
+  buildSkuChecks(); buildScalePriceEditor(); buildCustomPriceEditor(); render();
+}
+function switchTab(tab) {
+  if (window.innerWidth > 700) return;
+  document.getElementById('tab-config').classList.toggle('active', tab==='config');
+  document.getElementById('tab-preview').classList.toggle('active', tab==='preview');
+  document.querySelector('.sidebar').style.display       = tab==='config'  ? 'flex'  : 'none';
+  document.querySelector('.preview-panel').style.display = tab==='preview' ? 'block' : 'none';
+}
+
+// ═══════════════════════
+// RENDER
+// ═══════════════════════
+function render() {
+  const clientName  = document.getElementById('clientName').value.trim() || 'Cliente';
+  const validUntil  = document.getElementById('validUntil').value;
+  const clientNotes = document.getElementById('clientNotes').value.trim();
+  const mode        = document.getElementById('priceMode').value;
+  const vols        = getVols();
+  const active      = skus.filter(s => s.checked);
+  const bowls       = active.filter(s => s.tipo === 'bowl');
+  const tapas       = active.filter(s => s.tipo === 'tapa');
+
+  const today    = new Date().toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'});
+  const validStr = validUntil
+    ? new Date(validUntil+'T12:00:00').toLocaleDateString('es-ES',{day:'2-digit',month:'long',year:'numeric'})
+    : '—';
+
+  if (!active.length) {
+    document.getElementById('docPreview').innerHTML =
+      `<div class="empty-state"><p>Selecciona al menos un producto en el panel izquierdo.</p></div>`;
+    return;
+  }
+
+  let html = `
+  <div class="doc" id="theDoc">
+
+    <div class="doc-header">
+      <div class="doc-header-inner">
+        <div class="on-dark">
+          <div class="logo-mark">
+            <span class="logo-main">Jamboree</span>
+            <span class="logo-sub">The Bowl Factory</span>
+          </div>
+          <div class="doc-header-tagline">Ensaladeras de papel personalizadas para delivery</div>
+        </div>
+        <div class="doc-meta">
+          <div class="doc-meta-chip">Propuesta ${new Date().getFullYear()}</div>
+          <div class="doc-meta-line">Emitida: <strong>${today}</strong></div>
+          <div class="doc-meta-line">€ / 1.000 uds. · IVA no incluido</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="doc-client-bar">
+      <div>
+        <div class="client-label">Preparada para</div>
+        <div class="client-name">${esc(clientName)}</div>
+      </div>
+      <div>
+        <div class="validity-label">Válida hasta</div>
+        <div class="validity-date">${validStr}</div>
+      </div>
+    </div>
+
+    <div class="doc-body">
+      <div class="doc-intro">
+        Esta propuesta recoge los productos y precios para <strong>${esc(clientName)}</strong>,
+        con personalización inkjet incluida en cada tirada.
+        ${clientNotes ? `<br><em>${esc(clientNotes)}</em>` : ''}
+      </div>
+  `;
+
+  if (bowls.length) {
+    html += `<div class="prod-section">
+      <div class="prod-section-head">
+        <div>
+          <div class="prod-section-title">Ensaladeras de papel</div>
+          <div class="prod-section-sub">Personalización inkjet · Mínimo ${fmtFull(vols[0])} uds.</div>
+        </div>
+      </div>
+      ${mode==='scale' ? scaleTable(bowls,vols) : customTable(bowls)}
+    </div>`;
+  }
+
+  if (tapas.length) {
+    html += `<div class="prod-section">
+      <div class="prod-section-head">
+        <div>
+          <div class="prod-section-title">Tapas</div>
+          <div class="prod-section-sub">PLA transparente · Compatible con todos los formatos</div>
+        </div>
+      </div>
+      ${mode==='scale' ? scaleTable(tapas,vols) : customTable(tapas)}
+    </div>`;
+  }
+
+  html += `
+      <div class="doc-notes">
+        <div class="notes-title">Condiciones</div>
+        <ul class="notes-list">
+          <li>Precios en euros por cada 1.000 unidades, sin IVA (21%).</li>
+          <li>Mínimo de pedido: <strong>${fmtFull(vols[0])} unidades</strong> por referencia.</li>
+          <li>Plazo estimado: 10–15 días hábiles desde confirmación y aprobación de arte.</li>
+          <li>Tarifa válida hasta <strong>${validStr}</strong>. Sujeta a disponibilidad de materia prima.</li>
+          <li>Personalización hasta 4 colores. Arte en PDF vectorial facilitado por el cliente.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="doc-footer">
+      <div class="doc-footer-l">Jamboree · The Bowl Factory<br>Barcelona, España</div>
+      <div class="doc-footer-r">info@thebowlfactory.com<br>thebowlfactory.com</div>
+    </div>
+  </div>`;
+
+  document.getElementById('docPreview').innerHTML = html;
+}
+
+function scaleTable(list, vols) {
+  let h = `<table class="price-table"><thead><tr><th>Producto</th>`;
+  vols.forEach((v,i) => {
+    const next = vols[i+1];
+    const range = next ? `${fmtK(v)}–${fmtK(next-1)}` : `${fmtK(v)}+`;
+    h += `<th class="th-vol">${fmtK(v)}<span class="th-vol-range">${range} uds.</span></th>`;
+  });
+  h += `</tr></thead><tbody>`;
+  list.forEach(s => {
+    const min = Math.min(...s.precios);
+    h += `<tr><td class="td-product">
+      <div class="prod-code">${s.id}</div>
+      <div class="prod-name">${s.nombre}</div>
+      <div class="prod-spec">${s.spec}</div>
+    </td>`;
+    s.precios.forEach(p => {
+      h += `<td class="${p===min?'td-best':''}">${p.toFixed(2)} €</td>`;
+    });
+    h += `</tr>`;
+  });
+  h += `</tbody></table>`;
+  return h;
+}
+
+function customTable(list) {
+  let h = `<table class="custom-table"><thead><tr>
+    <th>Producto</th><th>Referencia</th><th style="text-align:right">Precio acordado</th>
+  </tr></thead><tbody>`;
+  list.forEach(s => {
+    const cp = customPrices[s.id] || s.precios[0];
+    h += `<tr>
+      <td>
+        <div class="prod-name">${s.nombre}<span class="custom-badge">Precio especial</span></div>
+        <div class="prod-spec">${s.spec}</div>
+      </td>
+      <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--gray)">${s.id}</td>
+      <td class="custom-price-val">${cp.toFixed(2)} <span style="font-size:10px;color:var(--gray);font-weight:300">€/1.000 uds.</span></td>
+    </tr>`;
+  });
+  h += `</tbody></table>`;
+  return h;
+}
+
+// ═══════════════════════
+// PDF GENERATION
+// ═══════════════════════
+async function generatePDF() {
+  const doc = document.getElementById('theDoc');
+  if (!doc) { alert('Selecciona al menos un producto primero.'); return; }
+
+  const btn = document.getElementById('btnGenerate');
+  const btnIcon = document.getElementById('btnIcon');
+  const btnText = document.getElementById('btnText');
+  btn.disabled = true; btn.style.background='#6b6b63';
+  btnIcon.textContent='⏳'; btnText.textContent='Generando...';
+
+  try {
+    const origStyle = doc.style.cssText;
+    doc.style.width='820px'; doc.style.maxWidth='820px';
+    doc.style.boxShadow='none';
+    await new Promise(r => setTimeout(r, 120));
+
+    const canvas = await html2canvas(doc, {
+      scale: 2, useCORS:true, allowTaint:true,
+      backgroundColor:'#ffffff', logging:false,
+      width:820, windowWidth:860
+    });
+    doc.style.cssText = origStyle;
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const pdfW = 210; const pdfH = 297;
+    const pageImgH = pdfW / (canvas.width / canvas.height);
+    let remaining = pageImgH, page = 0;
+
+    while (remaining > 0) {
+      if (page > 0) pdf.addPage();
+      const sliceH = Math.min(pdfH, remaining);
+      const srcY   = page * (pdfH / pageImgH) * canvas.height;
+      const srcH   = (sliceH / pageImgH) * canvas.height;
+      const sc = document.createElement('canvas');
+      sc.width = canvas.width; sc.height = Math.ceil(srcH);
+      sc.getContext('2d').drawImage(canvas, 0, srcY, canvas.width, srcH, 0, 0, canvas.width, srcH);
+      pdf.addImage(sc.toDataURL('image/jpeg', 0.93), 'JPEG', 0, 0, pdfW, sliceH);
+      remaining -= pdfH; page++;
+    }
+
+    const clientSlug = (document.getElementById('clientName').value.trim()||'cliente')
+      .toLowerCase().replace(/[^a-z0-9]/g,'-').replace(/-+/g,'-').slice(0,30);
+    const fecha = new Date().toISOString().split('T')[0];
+    const filename = `tarifa-tbf-${clientSlug}-${fecha}.pdf`;
+
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+      const blobUrl = URL.createObjectURL(pdf.output('blob'));
+      window.location.href = blobUrl;
+    } else {
+      pdf.save(filename);
+    }
+
+  } catch(e) {
+    console.error(e);
+    alert('Error generando PDF. Intenta de nuevo.');
+  }
+
+  btn.disabled=false; btn.style.background='';
+  btnIcon.textContent='↓'; btnText.textContent='Generar PDF';
+}
+
+// ═══════════════════════
+// HELPERS
+// ═══════════════════════
+function getVols() {
+  return [0,1,2,3,4,5].map(i => {
+    const el = document.getElementById(`v${i}`);
+    return el ? parseInt(el.value)||[1500,3000,5000,10000,20000,30000][i] : [1500,3000,5000,10000,20000,30000][i];
+  });
+}
+function fmtK(n) {
+  return n>=1000 ? (n%1000===0?(n/1000)+'k':(n/1000).toFixed(1)+'k') : n.toString();
+}
+function fmtFull(n) { return n.toLocaleString('es-ES'); }
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+init();
+</script>
+</body>
+</html>
